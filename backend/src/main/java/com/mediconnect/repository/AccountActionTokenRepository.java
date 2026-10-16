@@ -1,0 +1,3 @@
+package com.mediconnect.repository;
+import com.mediconnect.entity.AccountActionToken;import com.mediconnect.enums.TokenPurpose;import jakarta.persistence.LockModeType;import org.springframework.data.jpa.repository.JpaRepository;import org.springframework.data.jpa.repository.Lock;import java.time.Instant;import java.util.Optional;import java.util.UUID;
+public interface AccountActionTokenRepository extends JpaRepository<AccountActionToken,UUID>{@Lock(LockModeType.PESSIMISTIC_WRITE) Optional<AccountActionToken> findFirstByTokenHashAndPurposeAndUsedAtIsNullAndExpiresAtAfter(String tokenHash,TokenPurpose purpose,Instant now);void deleteByUser_IdAndPurpose(UUID userId,TokenPurpose purpose);void deleteById(UUID id);}

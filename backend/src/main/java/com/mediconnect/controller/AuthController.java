@@ -1,0 +1,19 @@
+package com.mediconnect.controller;
+import com.mediconnect.dto.AuthDtos.*;import com.mediconnect.entity.User;import com.mediconnect.service.UserService;import jakarta.servlet.http.HttpServletRequest;import jakarta.servlet.http.HttpServletResponse;import jakarta.validation.Valid;import org.springframework.http.HttpStatus;import org.springframework.security.core.Authentication;import org.springframework.web.bind.annotation.*;
+@RestController @RequestMapping("/api/auth") public class AuthController{
+ private final UserService service;public AuthController(UserService service){this.service=service;}
+ @PostMapping({"/register","/register/patient"}) @ResponseStatus(HttpStatus.CREATED) public UserResponse registerPatient(@Valid @RequestBody RegisterRequest body){return service.registerPatient(body);}
+ @PostMapping("/register/doctor") @ResponseStatus(HttpStatus.CREATED) public UserResponse registerDoctor(@Valid @RequestBody DoctorRegistration body){return service.registerDoctor(body);}
+ @PostMapping("/register/pharmacy") @ResponseStatus(HttpStatus.CREATED) public UserResponse registerPharmacy(@Valid @RequestBody PharmacyRegistration body){return service.registerPharmacy(body);}
+ @PostMapping("/register/laboratory") @ResponseStatus(HttpStatus.CREATED) public UserResponse registerLaboratory(@Valid @RequestBody LaboratoryRegistration body){return service.registerLaboratory(body);}
+ @PostMapping("/register/admin") @ResponseStatus(HttpStatus.CREATED) public UserResponse registerAdmin(@RequestHeader(value="X-Setup-Token",required=false)String token,@Valid @RequestBody SetupAdminRequest body){return service.registerInitialAdmin(body,token);}
+ @PostMapping("/verify-email") public java.util.Map<String,String> verifyEmail(@Valid @RequestBody TokenRequest body){UserResponse user=service.verifyEmail(body.token());String message=user.accountStatus().equals("PENDING_APPROVAL")?"Email verified. Your account is awaiting administrator approval; provider features remain unavailable until approval.":"Email verified. Your account is active and you can sign in.";return java.util.Map.of("message",message,"accountStatus",user.accountStatus());}
+ @PostMapping("/resend-verification") public java.util.Map<String,String> resendVerification(@Valid @RequestBody AccountEmailRequest body){service.resendVerification(body);return java.util.Map.of("message","If the account needs verification, a message may be sent. Check the inbox, or try again later.");}
+ @PostMapping("/forgot-password") public java.util.Map<String,String> forgotPassword(@Valid @RequestBody PasswordResetRequest body){service.requestPasswordReset(body);return java.util.Map.of("message","If an eligible account matches those details, password reset instructions may be sent. This response does not confirm whether an account exists.");}
+ @PostMapping("/reset-password") public java.util.Map<String,String> resetPassword(@Valid @RequestBody PasswordResetConfirm body){service.resetPassword(body);return java.util.Map.of("message","Password reset successfully.");}
+ @GetMapping("/csrf") public java.util.Map<String,String> csrf(org.springframework.security.web.csrf.CsrfToken token){return java.util.Map.of("token",token.getToken());}
+ @PostMapping("/setup-admin") @ResponseStatus(HttpStatus.CREATED) public UserResponse setupAdmin(@RequestHeader(value="X-Setup-Token",required=false)String token,@Valid @RequestBody SetupAdminRequest body){return service.registerInitialAdmin(body,token);}
+ @PostMapping("/login") public UserResponse login(@Valid @RequestBody LoginRequest body,HttpServletRequest request){return service.login(body,request);}
+ @PostMapping("/logout") public java.util.Map<String,String> logout(HttpServletRequest request,HttpServletResponse response){service.logout(request,response);return java.util.Map.of("message","Signed out successfully.");}
+ @GetMapping("/me") public UserResponse me(Authentication auth){User u=service.current(auth);return service.publicUser(u);}
+}

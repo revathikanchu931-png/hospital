@@ -1,0 +1,3 @@
+-- Synthetic catalog records are inserted only after demo provider accounts exist.
+-- Populate providers, their profiles, and catalogs through the authenticated API to
+-- avoid embedding predictable credentials or unapproved provider accounts.
