@@ -17,7 +17,7 @@
     <artifactId>mediconnect-backend</artifactId>
     <version>1.0.0</version>
     <name>mediconnect-backend</name>
-    <description>MediConnect Hospital Management System Backend</description>
+    <description>Carevia Hospital Management System Backend</description>
 
     <properties>
         <java.version>21</java.version>

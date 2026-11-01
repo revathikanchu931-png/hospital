@@ -1,4 +1,4 @@
-name: Deploy MediConnect to GitHub Pages
+name: Deploy Carevia to GitHub Pages
 
 on:
   push:

@@ -9,5 +9,5 @@ api.interceptors.request.use(async config => {
   }
   return config;
 });
-api.interceptors.response.use(response=>response,error=>{if(error.response?.status===401&&!['/auth/login','/auth/register','/auth/verify-email','/auth/resend-verification','/auth/forgot-password','/auth/reset-password'].some(path=>error.config?.url?.includes(path))){window.dispatchEvent(new Event('mediconnect:session-expired'));}return Promise.reject(error);});
+api.interceptors.response.use(response=>response,error=>{if(error.response?.status===401&&!['/auth/login','/auth/register','/auth/verify-email','/auth/resend-verification','/auth/forgot-password','/auth/reset-password'].some(path=>error.config?.url?.includes(path))){window.dispatchEvent(new Event('carevia:session-expired'));}return Promise.reject(error);});
 export default api;

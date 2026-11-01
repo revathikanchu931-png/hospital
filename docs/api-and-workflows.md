@@ -26,7 +26,7 @@ Initial admin setup (send once, replace the token, and do not put it in frontend
 ```powershell
 $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 $csrf = (Invoke-RestMethod -Method Get -Uri http://localhost:8080/api/auth/csrf -WebSession $session).token
-$body = @{ name = 'MediConnect Administrator'; email = 'admin@example.test'; phone = '9000000000'; organizationName = 'MediConnect Demo'; password = 'ChangeThisToALongUniquePassword'; confirmPassword = 'ChangeThisToALongUniquePassword' } | ConvertTo-Json
+$body = @{ name = 'Carevia Administrator'; email = 'admin@example.test'; phone = '9000000000'; organizationName = 'Carevia Demo'; password = 'ChangeThisToALongUniquePassword'; confirmPassword = 'ChangeThisToALongUniquePassword' } | ConvertTo-Json
 Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/auth/setup-admin -WebSession $session -Headers @{ 'X-Setup-Token' = $env:ADMIN_SETUP_TOKEN; 'X-XSRF-TOKEN' = $csrf } -ContentType 'application/json' -Body $body
 ```
 

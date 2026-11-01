@@ -1,6 +1,6 @@
-# MediConnect
+# Carevia
 
-MediConnect is a React and Spring Boot healthcare platform foundation. It includes a responsive public site, self-registration and sign-in flows for patient, doctor, admin, pharmacy and laboratory accounts, database-backed session authentication, optional email verification and password reset, initial-admin setup, provider approval, appointment workflows, role-based dashboard navigation, and MySQL metrics. MySQL is the only application persistence store.
+Carevia is a React and Spring Boot healthcare platform foundation. It includes a responsive public site, self-registration and sign-in flows for patient, doctor, admin, pharmacy and laboratory accounts, database-backed session authentication, optional email verification and password reset, initial-admin setup, provider approval, appointment workflows, role-based dashboard navigation, and MySQL metrics. MySQL is the only application persistence store.
 
 > **Implementation status:** This is a working foundation, not the complete platform described in the original product brief. Diagnostic booking/reporting, medicine inventory/cart/prescription/order workflows, and production email deliverability monitoring remain to be implemented. SMTP is required for password-reset delivery and optional email verification.
 
@@ -135,7 +135,7 @@ The UI is responsive and routes patient/doctor/laboratory/pharmacy/admin users t
 
 ## GitHub Pages
 
-The `Deploy MediConnect to GitHub Pages` workflow publishes the static frontend at `https://revathikanchu931-png.github.io/hospital/`. GitHub Pages does not run the Spring Boot backend or MySQL database. To enable sign-in and other API features for visitors, deploy the backend separately and set the repository Actions variable `VITE_API_URL` to its public API URL. Do not expose database credentials or setup tokens in frontend variables.
+The `Deploy Carevia to GitHub Pages` workflow publishes the static frontend at `https://revathikanchu931-png.github.io/hospital/`. GitHub Pages does not run the Spring Boot backend or MySQL database. To enable sign-in and other API features for visitors, deploy the backend separately and set the repository Actions variable `VITE_API_URL` to its public API URL. Do not expose database credentials or setup tokens in frontend variables.
 
 ## Security and operational notes
 
