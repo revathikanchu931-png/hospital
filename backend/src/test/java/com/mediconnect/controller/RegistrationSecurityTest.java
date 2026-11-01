@@ -90,7 +90,9 @@ class RegistrationSecurityTest {
 
     @Test void invalidRegistrationPayloadIsRejectedByValidation() throws Exception {
         mvc.perform(post("/api/auth/register/doctor").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("name:")))
+                .andExpect(jsonPath("$.message").value(containsString("email:")));
     }
 
     @Test void unverifiedAccountCanRequestResendAndResetWithoutSigningIn() throws Exception {

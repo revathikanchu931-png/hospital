@@ -1,6 +1,6 @@
 # MediConnect
 
-MediConnect is a React and Spring Boot healthcare platform foundation. It includes a responsive public site, self-registration and sign-in flows for patient, doctor, admin, pharmacy and laboratory accounts, database-backed session authentication, email verification and password reset, initial-admin setup, provider approval, appointment workflows, role-based dashboard navigation, and MySQL metrics. MySQL is the only application persistence store.
+MediConnect is a React and Spring Boot healthcare platform foundation. It includes a responsive public site, self-registration and sign-in flows for patient, doctor, admin, pharmacy and laboratory accounts, database-backed session authentication, optional email verification and password reset, initial-admin setup, provider approval, appointment workflows, role-based dashboard navigation, and MySQL metrics. MySQL is the only application persistence store.
 
 > **Implementation status:** This is a working foundation, not the complete platform described in the original product brief. Diagnostic booking/reporting, medicine inventory/cart/prescription/order workflows, and production email deliverability monitoring remain to be implemented. SMTP must be configured to deliver verification and password-reset links.
 
@@ -60,9 +60,9 @@ The API listens on `http://localhost:8080`; Flyway migrations run at startup. A 
 .\mvnw.cmd test
 ```
 
-## Create accounts and verify email
+## Create accounts and email settings
 
-For local testing, start the development email sink before running the backend:
+Email verification is disabled by default (`EMAIL_VERIFICATION_REQUIRED=false`). To require email verification, set `EMAIL_VERIFICATION_REQUIRED=true` and configure SMTP. For local mail testing, start the development email sink before running the backend:
 
 ```powershell
 docker compose -f .\docker-compose.mailpit.yml up -d
@@ -72,7 +72,7 @@ Mailpit accepts SMTP on `localhost:1025` and displays captured messages at `http
 
 For real delivery, configure Spring Mail through environment variables. For Gmail, use `MAIL_HOST=smtp.gmail.com`, `MAIL_PORT=587`, `MAIL_USERNAME` set to the sending Gmail address, `MAIL_PASSWORD` set to a Google App Password (not the account password), `MAIL_SMTP_AUTH=true`, `MAIL_SMTP_STARTTLS=true`, `MAIL_SMTP_SSL=false`, and `MAIL_FROM` set to that same sender address. Availability of Gmail App Passwords depends on the Google account's security setup. Never put SMTP secrets in Vite variables or frontend files.
 
-Patients, doctors, pharmacies, laboratories, and the authorized initial administrator can register through their respective forms. The server hashes passwords and stores account/profile data in MySQL. Patients become active after email verification. Verified doctor, pharmacy, and laboratory accounts remain blocked from sign-in until an administrator approves them. Forgot-password requests are neutral and do not disclose whether an account exists; the reset email is sent only to email-verified, eligible accounts. Admin registration at `/register/admin` is protected by `ADMIN_SETUP_TOKEN` and allowed only while no administrator exists. Enter that secret in the form; it is sent only to the backend in an HTTPS header and is never bundled into frontend source. Rotate or remove the initial setup token after use.
+Patients, doctors, pharmacies, laboratories, and the authorized initial administrator can register through their respective forms. The server hashes passwords and stores account/profile data in MySQL. When email verification is disabled, patients can sign in immediately; providers still require administrator approval. When enabled, patients must verify their email and provider approval follows verification. Forgot-password requests are neutral and do not disclose whether an account exists. Admin registration at `/register/admin` is protected by `ADMIN_SETUP_TOKEN` and allowed only while no administrator exists. Enter that secret in the form; it is sent only to the backend in an HTTPS header and is never bundled into frontend source. Rotate or remove the initial setup token after use.
 
 The five sign-in routes are `/login/patient`, `/login/doctor`, `/login/admin`, `/login/pharmacy`, and `/login/laboratory`; `/login` presents the role chooser. Sessions use Spring Security, BCrypt, HTTP-only session cookies, and CSRF tokens. User role is determined from MySQL and must match the requested login role.
 
@@ -89,6 +89,10 @@ npm run dev
 Open `http://localhost:5173`. To build production frontend assets, run `npm run build`; to run frontend tests, run `npm test` (test scripts are configured, but application test cases have not yet been written).
 
 The UI is responsive and routes patient/doctor/laboratory/pharmacy/admin users to separate dashboard layouts. Profile read/update, logout, provider approval and account activation are backed by protected APIs.
+
+## GitHub Pages
+
+The `Deploy MediConnect to GitHub Pages` workflow publishes the static frontend at `https://revathikanchu931-png.github.io/hospital/`. GitHub Pages does not run the Spring Boot backend or MySQL database. To enable sign-in and other API features for visitors, deploy the backend separately and set the repository Actions variable `VITE_API_URL` to its public API URL. Do not expose database credentials or setup tokens in frontend variables.
 
 ## Security and operational notes
 

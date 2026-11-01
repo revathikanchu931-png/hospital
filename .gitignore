@@ -18,6 +18,7 @@ backend/target/
 
 # Logs
 *.log
+*_backup.sql
 
 # Local IDE files
 .vscode/

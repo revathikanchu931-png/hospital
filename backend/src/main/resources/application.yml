@@ -39,3 +39,4 @@ app:
   admin-setup-token: ${ADMIN_SETUP_TOKEN:}
   public-base-url: ${APP_PUBLIC_BASE_URL:http://localhost:5173}
   mail-from: ${MAIL_FROM:}
+  email-verification-required: ${EMAIL_VERIFICATION_REQUIRED:false}

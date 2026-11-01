@@ -64,6 +64,8 @@ public class UserService {
     private final EmailDeliveryService email;
     private final JdbcTemplate jdbc;
     private final String setupToken;
+    @Value("${app.email-verification-required:false}")
+    private boolean emailVerificationRequired;
 
     public UserService(
             UserRepository users,
@@ -128,7 +130,7 @@ public class UserService {
                 request.address()
         );
 
-        return registrationResponse(user, issueVerification(user));
+        return registrationResponse(user, sendVerificationIfRequired(user));
     }
 
     @Transactional
@@ -163,7 +165,7 @@ public class UserService {
                 request.registrationNumber().trim()
         );
 
-        return registrationResponse(user, issueVerification(user));
+        return registrationResponse(user, sendVerificationIfRequired(user));
     }
 
     @Transactional
@@ -193,7 +195,7 @@ public class UserService {
                 request.licenseNumber().trim()
         );
 
-        return registrationResponse(user, issueVerification(user));
+        return registrationResponse(user, sendVerificationIfRequired(user));
     }
 
     @Transactional
@@ -225,7 +227,7 @@ public class UserService {
                 request.accreditationDetails().trim()
         );
 
-        return registrationResponse(user, issueVerification(user));
+        return registrationResponse(user, sendVerificationIfRequired(user));
     }
 
     @Transactional
@@ -262,7 +264,7 @@ public class UserService {
                 request.organizationName()
         );
 
-        return registrationResponse(user, issueVerification(user));
+        return registrationResponse(user, sendVerificationIfRequired(user));
     }
 
     private User pendingUser(
@@ -283,18 +285,27 @@ public class UserService {
             );
         }
 
-        return users.saveAndFlush(
-                new User(
+        boolean verifiedForDevelopment = !emailVerificationRequired;
+        boolean providerAccount = role == UserRole.DOCTOR
+                || role == UserRole.PHARMACY
+                || role == UserRole.LABORATORY;
+        AccountStatus initialStatus = verifiedForDevelopment
+                ? providerAccount
+                    ? AccountStatus.PENDING_APPROVAL
+                    : AccountStatus.ACTIVE
+                : AccountStatus.PENDING_EMAIL_VERIFICATION;
+        User user = new User(
                         name.trim(),
                         normalizedEmail,
                         encoder.encode(password),
                         phone,
                         role,
                         verification,
-                        AccountStatus.PENDING_EMAIL_VERIFICATION,
+                        initialStatus,
                         organization
-                )
-        );
+                );
+        user.setEmailVerified(verifiedForDevelopment);
+        return users.saveAndFlush(user);
     }
 
     private UserResponse registrationResponse(
@@ -348,6 +359,10 @@ public class UserService {
         }
 
         return sent;
+    }
+
+    private boolean sendVerificationIfRequired(User user) {
+        return emailVerificationRequired && issueVerification(user);
     }
 
     @Transactional
@@ -545,6 +560,7 @@ public class UserService {
                 );
     }
 
+    @Transactional
     public UserResponse login(
             LoginRequest request,
             HttpServletRequest servletRequest) {
@@ -571,6 +587,18 @@ public class UserService {
                         request.password()
                 )
         );
+
+        // Development may skip the email link. Promote only after the
+        // password has been verified, and retain provider approval gates.
+        if (!emailVerificationRequired && !user.isEmailVerified()) {
+            user.setEmailVerified(true);
+            boolean providerAccount = user.getRole() == UserRole.DOCTOR
+                    || user.getRole() == UserRole.PHARMACY
+                    || user.getRole() == UserRole.LABORATORY;
+            user.setAccountStatus(providerAccount
+                    ? AccountStatus.PENDING_APPROVAL
+                    : AccountStatus.ACTIVE);
+        }
 
         if (user.getAccountStatus() == AccountStatus.PENDING_APPROVAL
                 || user.getVerificationStatus()
@@ -691,10 +719,14 @@ public class UserService {
         }
 
         if (active) {
-            if (!target.isEmailVerified()) {
+            if (emailVerificationRequired && !target.isEmailVerified()) {
                 throw new IllegalStateException(
                         "Verify the account email before activating it."
                 );
+            }
+
+            if (!emailVerificationRequired) {
+                target.setEmailVerified(true);
             }
 
             target.setActive(
@@ -744,10 +776,15 @@ public class UserService {
             );
         }
 
-        if (approved && !target.isEmailVerified()) {
+        if (approved && emailVerificationRequired
+                && !target.isEmailVerified()) {
             throw new IllegalStateException(
                     "The provider must verify their email before approval."
             );
+        }
+
+        if (approved && !emailVerificationRequired) {
+            target.setEmailVerified(true);
         }
 
         boolean wasDisabled =

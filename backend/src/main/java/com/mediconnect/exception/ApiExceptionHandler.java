@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
+import java.util.Locale;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -25,8 +26,27 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     ResponseEntity<?> dataConflict(DataIntegrityViolationException exception) {
+        String constraint = exceptionChain(exception).toLowerCase(Locale.ROOT);
+        String message = constraint.contains("uk_users_email")
+                ? "This email is already registered. Sign in or use a different email."
+                : constraint.contains("uk_doctor_registration")
+                    ? "This professional registration number is already in use."
+                    : constraint.contains("uk_lab_license")
+                        || constraint.contains("uk_pharmacy_license")
+                    ? "This provider license number is already in use."
+                    : "Some submitted information is already in use. Check the email and registration or license number.";
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("message", "These account details conflict with an existing record."));
+                .body(Map.of("message", message));
+    }
+
+    private String exceptionChain(Throwable exception) {
+        StringBuilder messages = new StringBuilder();
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            if (cause.getMessage() != null) {
+                messages.append(' ').append(cause.getMessage());
+            }
+        }
+        return messages.toString();
     }
 
     @ExceptionHandler(BadCredentialsException.class)
@@ -52,7 +72,14 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<?> validation(MethodArgumentNotValidException exception) {
-        return ResponseEntity.badRequest().body(Map.of("message", "Please check the submitted information."));
+        var errors = exception.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .distinct()
+                .toList();
+        String message = errors.isEmpty()
+                ? "Please check the submitted information."
+                : "Please correct the following: " + String.join("; ", errors) + ".";
+        return ResponseEntity.badRequest().body(Map.of("message", message));
     }
 
     @ExceptionHandler(ResponseStatusException.class)
