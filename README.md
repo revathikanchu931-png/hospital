@@ -2,7 +2,7 @@
 
 MediConnect is a React and Spring Boot healthcare platform foundation. It includes a responsive public site, self-registration and sign-in flows for patient, doctor, admin, pharmacy and laboratory accounts, database-backed session authentication, optional email verification and password reset, initial-admin setup, provider approval, appointment workflows, role-based dashboard navigation, and MySQL metrics. MySQL is the only application persistence store.
 
-> **Implementation status:** This is a working foundation, not the complete platform described in the original product brief. Diagnostic booking/reporting, medicine inventory/cart/prescription/order workflows, and production email deliverability monitoring remain to be implemented. SMTP must be configured to deliver verification and password-reset links.
+> **Implementation status:** This is a working foundation, not the complete platform described in the original product brief. Diagnostic booking/reporting, medicine inventory/cart/prescription/order workflows, and production email deliverability monitoring remain to be implemented. SMTP is required for password-reset delivery and optional email verification.
 
 ## Project structure
 
@@ -17,15 +17,58 @@ docs/api-and-workflows.md     API behavior and bootstrap notes
 
 ## Prerequisites
 
-- Windows 11, Java 21, MySQL 8, Node.js LTS and npm.
+- Git, Windows 11, Java 21, MySQL 8, Node.js LTS and npm. Docker Desktop is optional and is used for local email testing with Mailpit.
 - The backend includes a Maven Wrapper (`mvnw.cmd`); it downloads the configured Maven distribution on first use if needed.
+
+## Run locally (Windows PowerShell)
+
+1. Clone the repository and enter the project folder:
+
+   ```powershell
+   git clone https://github.com/revathikanchu931-png/hospital.git
+   cd hospital
+   ```
+
+2. Create the local database and application user. Run this from the project root; the script uses the sample password `change-me` for the `mediconnect` database user. Change it in the SQL script if needed, and use the same value in `DB_PASSWORD` below.
+
+   ```powershell
+   mysql -u root -p -e "source database/create-database.sql"
+   ```
+
+3. Start the backend in a PowerShell window. These environment settings apply to this window only. Flyway creates/validates the tables during startup.
+
+   ```powershell
+   cd .\backend
+   $env:DB_URL = 'jdbc:mysql://localhost:3306/mediconnect_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC'
+   $env:DB_USERNAME = 'mediconnect'
+   $env:DB_PASSWORD = 'change-me'
+   $env:APP_CORS_ORIGIN = 'http://localhost:5173'
+   $env:APP_PUBLIC_BASE_URL = 'http://localhost:5173'
+   $env:EMAIL_VERIFICATION_REQUIRED = 'false'
+   $env:ADMIN_SETUP_TOKEN = [guid]::NewGuid().ToString('N')
+   .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
+   ```
+
+   Keep this window open. The first administrator setup code is available by entering `$env:ADMIN_SETUP_TOKEN` in the same window. Use it once on `/register/admin`; do not commit or share the code. Doctor, pharmacy, and laboratory accounts still need administrator approval.
+
+4. Open a second PowerShell window in the project root, install frontend dependencies and start Vite:
+
+   ```powershell
+   cd .\frontend
+   npm ci
+   npm run dev
+   ```
+
+5. Open `http://localhost:5173`. Use the **Register** page to create an account, then sign in using that account's email and password. Admins approve provider applications under **Provider approvals**.
+
+To stop either server, press `Ctrl+C` in its PowerShell window. Start MySQL before starting the backend.
 
 ## Configure MySQL
 
-Open a PowerShell window in the project root. Edit the sample database-user password before applying the script if desired.
+The database can also be created separately with the command below. Edit the sample database-user password before applying the script if desired.
 
 ```powershell
-mysql -u root -p < .\database\create-database.sql
+mysql -u root -p -e "source database/create-database.sql"
 ```
 
 Flyway creates application tables on first startup. `ddl-auto: validate` checks that Hibernate mappings agree with the migration schema. The backend uses `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`; on PowerShell, set them in the same terminal that starts Spring Boot:
@@ -62,7 +105,7 @@ The API listens on `http://localhost:8080`; Flyway migrations run at startup. A 
 
 ## Create accounts and email settings
 
-Email verification is disabled by default (`EMAIL_VERIFICATION_REQUIRED=false`). To require email verification, set `EMAIL_VERIFICATION_REQUIRED=true` and configure SMTP. For local mail testing, start the development email sink before running the backend:
+Email verification is disabled by default (`EMAIL_VERIFICATION_REQUIRED=false`). To require email verification, set `EMAIL_VERIFICATION_REQUIRED=true` and configure SMTP. For local email-link testing, start the development email sink before running the backend:
 
 ```powershell
 docker compose -f .\docker-compose.mailpit.yml up -d
@@ -86,7 +129,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. To build production frontend assets, run `npm run build`; to run frontend tests, run `npm test` (test scripts are configured, but application test cases have not yet been written).
+Open `http://localhost:5173`. To build production frontend assets, run `npm run build`; run the frontend test suite with `npm test`.
 
 The UI is responsive and routes patient/doctor/laboratory/pharmacy/admin users to separate dashboard layouts. Profile read/update, logout, provider approval and account activation are backed by protected APIs.
 
@@ -105,6 +148,6 @@ The `Deploy MediConnect to GitHub Pages` workflow publishes the static frontend 
 
 - Self-registration captures patient and provider profile details. Profile editing currently covers common name and phone fields; role-specific profile editing is limited.
 - Diagnostic test booking, report uploads/downloads, medicine listing from MySQL, cart, prescription upload/review and order fulfillment endpoints are not yet implemented. Corresponding MySQL tables are provisioned for that work.
-- Email delivery uses Spring Mail. A local Mailpit SMTP sink is provided for development; production email delivery still requires valid SMTP credentials and a verified sender. When SMTP delivery fails, registration remains saved, the API reports that the verification message was not sent, and the user can request a resend later. Forgot-password responses remain neutral to avoid account enumeration.
-- Local verification requires Docker/Mailpit or an SMTP provider. This workspace's tests do not prove delivery through an external production mail provider.
+- Email delivery uses Spring Mail. A local Mailpit SMTP sink is provided for development; production email delivery still requires valid SMTP credentials and a verified sender. When email verification is enabled and SMTP delivery fails, registration remains saved and the user can request a resend later. Forgot-password responses remain neutral to avoid account enumeration.
+- Testing email verification or password-reset delivery locally requires Docker/Mailpit or an SMTP provider. This workspace's tests do not prove delivery through an external production mail provider.
 - The migration includes table layouts for the broader requested data model. A deployment team should review schema policy, consent and audit requirements before production use.
